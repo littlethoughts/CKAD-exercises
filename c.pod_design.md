@@ -93,6 +93,13 @@ kubectl label po -lapp app-
 <details><summary>show</summary>
 <p>
 
+Add the label to a node:
+
+```bash
+kubectl label nodes <your-node-name> accelerator=nvidia-tesla-p100
+kubectl get nodes --show-labels
+```
+
 We can use the 'nodeSelector' property on the Pod YAML:
 
 ```YAML
@@ -112,6 +119,28 @@ You can easily find out where in the YAML it should be placed by:
 
 ```bash
 kubectl explain po.spec
+```
+
+OR:
+Use node affinity (https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes-using-node-affinity/#schedule-a-pod-using-required-node-affinity)
+
+```YAML
+apiVersion: v1
+kind: Pod
+metadata:
+  name: affinity-pod
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: accelerator
+            operator: In
+            values:
+            - nvidia-tesla-p100
+  containers:
+    ...
 ```
 
 </p>
@@ -182,7 +211,13 @@ kubernetes.io > Documentation > Concepts > Workloads > Controllers > [Deployment
 <p>
 
 ```bash
-kubectl create deployment nginx  --image=nginx:1.7.8  --dry-run=client -o yaml > deploy.yaml
+kubectl run nginx --image=nginx:1.7.8 --replicas=2 --port=80
+```
+
+**However**, `kubectl run` for Deployments is Deprecated and will be removed in a future version. What you can do is:
+
+```bash
+kubectl create deployment nginx  --image=nginx:1.7.8  --dry-run -o yaml > deploy.yaml
 vi deploy.yaml
 # change the replicas field from 1 to 2
 # add this section to the container spec and save the deploy.yaml file
@@ -194,7 +229,7 @@ kubectl apply -f deploy.yaml
 or, do something like:
 
 ```bash
-kubectl create deployment nginx  --image=nginx:1.7.8  --dry-run=client -o yaml | sed 's/replicas: 1/replicas: 2/g'  | sed 's/image: nginx:1.7.8/image: nginx:1.7.8\n        ports:\n        - containerPort: 80/g' | kubectl apply -f -
+kubectl create deployment nginx  --image=nginx:1.7.8  --dry-run -o yaml | sed 's/replicas: 1/replicas: 2/g'  | sed 's/image: nginx:1.7.8/image: nginx:1.7.8\n        ports:\n        - containerPort: 80/g' | kubectl apply -f -
 ```
 
 </p>
@@ -723,7 +758,7 @@ kubectl delete cj busybox
 </p>
 </details>
 
-### Create a cron job with image busybox that runs every minutes and writes 'date; echo Hello from the Kubernetes cluster' to standard output. The cron job should be terminated if it takes more than 17 seconds to execute.
+### Create a cron job with image busybox that runs every minutes and writes 'date; echo Hello from the Kubernetes cluster' to standard output. The cron job should be terminated if it takes more than 17 seconds to start execution after its schedule.
 
 <details><summary>show</summary>
 <p>
